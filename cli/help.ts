@@ -1,3 +1,5 @@
+import { DOMAIN } from "./client";
+
 export const MAIN_HELP = `
 Static Files - Host static files on subdomains
 
@@ -11,13 +13,14 @@ COMMANDS
   stats     View access statistics
 
 EXAMPLES
-  sf sites create docs              # Create docs.498as.com
+  sf sites create docs              # Create docs.${DOMAIN}
   sf upload ./api.pdf docs          # Upload to docs site
   sf upload ./img.png docs assets/  # Upload to docs/assets/
 
 CONFIG
   SF_API_URL    API endpoint (default: http://localhost:3000)
   SF_API_KEY    API key for authentication
+  SF_DOMAIN     Domain for sites (default: ${DOMAIN})
 `.trim();
 
 export const SITES_HELP = `
@@ -28,7 +31,7 @@ USAGE
 
 ACTIONS
   list                    List all sites
-  create <name>           Create new site at <name>.498as.com
+  create <name>           Create new site at <name>.${DOMAIN}
   delete <name>           Delete site and all its files
   auth <name> <user:pass> Set basic auth for site
   auth <name> --remove    Remove basic auth
@@ -54,7 +57,7 @@ USAGE
 
 ARGUMENTS
   file    Local file or directory to upload
-  site    Target site name (without .498as.com)
+  site    Target site name (without .${DOMAIN})
   path    Optional subdirectory on the site
 
 OPTIONS

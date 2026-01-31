@@ -1,4 +1,5 @@
 import * as client from "./client";
+import { DOMAIN } from "./client";
 import { SITES_HELP, UPLOAD_HELP, FILES_HELP, STATS_HELP } from "./help";
 import { statSync, readdirSync } from "fs";
 import { join, basename } from "path";
@@ -44,7 +45,7 @@ export async function sites(args: string[], opts: Options) {
     console.log("Sites:\n");
     for (const site of sites) {
       const auth = site.auth_user ? ` (auth: ${site.auth_user})` : "";
-      console.log(`  ${site.name}.498as.com${auth}`);
+      console.log(`  ${site.name}.${DOMAIN}${auth}`);
       console.log(`    Created: ${formatDate(site.created_at)}\n`);
     }
     return;
@@ -61,7 +62,7 @@ export async function sites(args: string[], opts: Options) {
 
     if (opts.json) return output(site, opts);
 
-    console.log(`Created site: ${site.name}.498as.com`);
+    console.log(`Created site: ${site.name}.${DOMAIN}`);
     console.log(`\nUpload files with: sf upload <file> ${site.name}`);
     return;
   }
@@ -93,7 +94,7 @@ export async function sites(args: string[], opts: Options) {
 
       if (opts.json) return output(site, opts);
 
-      console.log(`Removed auth from ${name}.498as.com`);
+      console.log(`Removed auth from ${name}.${DOMAIN}`);
       return;
     }
 
@@ -110,7 +111,7 @@ export async function sites(args: string[], opts: Options) {
 
     if (opts.json) return output(site, opts);
 
-    console.log(`Set auth for ${name}.498as.com (user: ${user})`);
+    console.log(`Set auth for ${name}.${DOMAIN} (user: ${user})`);
     return;
   }
 
@@ -227,7 +228,7 @@ export async function stats(args: string[], opts: Options) {
 
     if (opts.json) return output(s, opts);
 
-    console.log(`Stats for ${site}.498as.com:\n`);
+    console.log(`Stats for ${site}.${DOMAIN}:\n`);
     console.log(`  Files:    ${s.files}`);
     console.log(`  Size:     ${formatBytes(s.size)}`);
     console.log(`  Requests: ${s.requests}`);

@@ -2,6 +2,7 @@ import type { Site, CreateSite, UpdateSiteAuth, FileInfo, UploadResult, Stats, S
 
 const API_URL = process.env.SF_API_URL || "http://localhost:3000";
 const API_KEY = process.env.SF_API_KEY || "";
+export const DOMAIN = process.env.SF_DOMAIN || "498as.com";
 
 /**
  * Validate that required configuration is present.
