@@ -215,3 +215,21 @@ sudo /opt/kleo-static-files/install.sh --status
 ```
 
 See [references/install.md](references/install.md) for manual installation.
+
+## Alternative CLI (Shell Wrapper)
+
+If you need a lightweight alternative to the Bun CLI, use the curl-based shell wrapper:
+
+```bash
+# Use directly
+/opt/kleo-static-files/cli/sf.sh sites list
+
+# Or create an alias
+alias sf='/opt/kleo-static-files/cli/sf.sh'
+
+# Works the same way
+sf sites create mysite
+sf upload ./files mysite
+```
+
+The shell wrapper requires only `bash` and `curl`, no Bun installation needed.

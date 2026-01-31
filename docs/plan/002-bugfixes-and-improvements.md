@@ -190,12 +190,12 @@ The bun CLI has bugs. A shell wrapper using curl works reliably but isn't in the
 3. [x] Fix database permissions (Bug 4) — commit 88d0160
 
 ### Phase 2: Security
-4. [ ] Run service as dedicated user (Improvement 1)
+4. [x] Run service as dedicated user (Improvement 1) — commit 1926842
 
 ### Phase 3: Polish
-5. [ ] Update ClawdHub skill (Improvement 2)
-6. [ ] Better error messages (Improvement 4)
-7. [ ] Add shell wrapper as fallback (Improvement 3)
+5. [x] Update ClawdHub skill (Improvement 2) — commit d81e2be
+6. [ ] Better error messages (Improvement 4) — skipped, client.ts already has good error handling
+7. [x] Add shell wrapper as fallback (Improvement 3) — commit 94834cc
 
 ---
 
