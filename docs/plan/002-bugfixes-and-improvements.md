@@ -12,7 +12,7 @@ During the installation on dantse.cc, several bugs and improvement opportunities
 
 ## 🐛 Bugs
 
-### Bug 1: CLI Upload "Invalid path" Error
+### Bug 1: CLI Upload "Invalid path" Error (FIXED ✅)
 
 **Severity:** High  
 **Component:** `cli/commands.ts`, `cli/client.ts`
@@ -50,7 +50,7 @@ The error comes from the server's `safePath()` function, not the CLI path parsin
 
 ---
 
-### Bug 2: Installer Adds Duplicate Caddy Imports
+### Bug 2: Installer Adds Duplicate Caddy Imports (FIXED ✅)
 
 **Severity:** Medium  
 **Component:** `install.sh`
@@ -97,7 +97,7 @@ Changed to `SF_BIND_IPS="$BIND_IPS"` (commit 55adef2)
 
 ---
 
-### Bug 4: Database Permissions
+### Bug 4: Database Permissions (FIXED ✅)
 
 **Severity:** Medium  
 **Component:** `install.sh`, `scripts/create-key.ts`
@@ -185,9 +185,9 @@ The bun CLI has bugs. A shell wrapper using curl works reliably but isn't in the
 ## 📋 Implementation Order
 
 ### Phase 1: Critical Fixes
-1. [ ] Fix CLI upload bug (Bug 1)
-2. [ ] Fix duplicate Caddy imports (Bug 2)
-3. [ ] Fix database permissions (Bug 4)
+1. [x] Fix CLI upload bug (Bug 1) — commit 35abf58
+2. [x] Fix duplicate Caddy imports (Bug 2) — commit bd3562f
+3. [x] Fix database permissions (Bug 4) — commit 88d0160
 
 ### Phase 2: Security
 4. [ ] Run service as dedicated user (Improvement 1)
