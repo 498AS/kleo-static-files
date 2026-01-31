@@ -4,7 +4,9 @@
   "scripts": {
     "dev": "bun run --watch server/index.ts",
     "start": "bun run server/index.ts",
-    "gen-types": "bun run scripts/gen-types.ts"
+    "test": "bun test",
+    "gen-types": "bun run scripts/gen-types.ts",
+    "create-key": "bun run scripts/create-key.ts"
   },
   "dependencies": {
     "@hono/zod-openapi": "^0.18.4",

@@ -1,7 +1,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { createHash } from "crypto";
 import { readdirSync, statSync, mkdirSync, rmSync, unlinkSync, existsSync } from "fs";
-import { join, relative } from "path";
+import { join, relative, dirname } from "path";
 import {
   SiteSchema, CreateSiteSchema, UpdateSiteAuthSchema,
   FileSchema, UploadResultSchema,
@@ -10,11 +10,13 @@ import {
 } from "./schema";
 import * as db from "./db";
 import * as caddy from "./caddy";
+import { safePath } from "./utils";
 
 const app = new OpenAPIHono();
 
 const SITES_ROOT = process.env.SF_SITES_ROOT || "./sites";
 const PORT = parseInt(process.env.SF_PORT || "3000");
+const MAX_FILE_SIZE = parseInt(process.env.SF_MAX_FILE_MB || "50") * 1024 * 1024;
 
 // Ensure sites directory exists
 mkdirSync(SITES_ROOT, { recursive: true });
@@ -319,10 +321,19 @@ app.openapi(
       return c.json({ error: "No file provided" }, 400);
     }
 
+    // Check file size limit
+    if (file.size > MAX_FILE_SIZE) {
+      return c.json({ error: `File too large. Max: ${MAX_FILE_SIZE / 1024 / 1024}MB` }, 413);
+    }
+
     const subPath = query.path || "";
-    const targetDir = join(site.path, subPath);
-    const targetPath = join(targetDir, file.name);
     const relativePath = join(subPath, file.name);
+
+    // Validate path to prevent path traversal attacks
+    const targetPath = safePath(site.path, relativePath);
+    if (!targetPath) {
+      return c.json({ error: "Invalid path" }, 400);
+    }
 
     // Check if file exists
     if (existsSync(targetPath) && query.overwrite !== "true") {
@@ -330,7 +341,7 @@ app.openapi(
     }
 
     // Create directory if needed
-    mkdirSync(targetDir, { recursive: true });
+    mkdirSync(dirname(targetPath), { recursive: true });
 
     // Write file
     const buffer = await file.arrayBuffer();
@@ -410,7 +421,11 @@ app.openapi(
       return c.json({ error: "Site not found" }, 404);
     }
 
-    const fullPath = join(site.path, filePath);
+    // Validate path to prevent path traversal attacks
+    const fullPath = safePath(site.path, filePath);
+    if (!fullPath) {
+      return c.json({ error: "Invalid path" }, 400);
+    }
 
     if (!existsSync(fullPath)) {
       return c.json({ error: "File not found" }, 404);
