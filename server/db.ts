@@ -17,9 +17,23 @@ db.run(`
     path TEXT NOT NULL,
     auth_user TEXT,
     auth_hash TEXT,
+    quota_bytes INTEGER DEFAULT 104857600,  -- 100MB default
+    used_bytes INTEGER DEFAULT 0,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
   )
 `);
+
+// Migration: Add quota columns if they don't exist (for existing DBs)
+try {
+  db.run(`ALTER TABLE sites ADD COLUMN quota_bytes INTEGER DEFAULT 104857600`);
+} catch (e) {
+  // Column already exists, ignore
+}
+try {
+  db.run(`ALTER TABLE sites ADD COLUMN used_bytes INTEGER DEFAULT 0`);
+} catch (e) {
+  // Column already exists, ignore
+}
 
 db.run(`
   CREATE TABLE IF NOT EXISTS api_keys (
@@ -58,6 +72,23 @@ export const updateSiteAuth = db.query<any, [string | null, string | null, strin
 );
 
 export const deleteSiteQuery = db.query<any, [string]>(`DELETE FROM sites WHERE name = ?`);
+
+// === Quota queries ===
+export const updateUsedBytes = db.query<any, [number, string]>(
+  `UPDATE sites SET used_bytes = ? WHERE name = ?`
+);
+
+export const incrementUsedBytes = db.query<any, [number, string]>(
+  `UPDATE sites SET used_bytes = used_bytes + ? WHERE name = ?`
+);
+
+export const decrementUsedBytes = db.query<any, [number, string]>(
+  `UPDATE sites SET used_bytes = MAX(0, used_bytes - ?) WHERE name = ?`
+);
+
+export const getSiteQuota = db.query<{ quota_bytes: number; used_bytes: number } | null, [string]>(
+  `SELECT quota_bytes, used_bytes FROM sites WHERE name = ?`
+);
 
 // === API Key queries ===
 export const getApiKey = db.query<any, [string]>(`SELECT * FROM api_keys WHERE key_hash = ?`);

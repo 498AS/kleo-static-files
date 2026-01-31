@@ -11,7 +11,7 @@ import {
 import * as db from "./db";
 import * as caddy from "./caddy";
 import { safePath } from "./utils";
-import { logging } from "./middleware";
+import { logging, rateLimit } from "./middleware";
 
 const app = new OpenAPIHono();
 
@@ -24,6 +24,9 @@ mkdirSync(SITES_ROOT, { recursive: true });
 
 // === Logging middleware ===
 app.use("*", logging());
+
+// === Rate limiting middleware ===
+app.use("*", rateLimit());
 
 // === Auth middleware ===
 app.use("*", async (c, next) => {
@@ -373,6 +376,19 @@ app.openapi(
       return c.json({ error: `File too large. Max: ${MAX_FILE_SIZE / 1024 / 1024}MB` }, 413);
     }
 
+    // Check quota
+    const quota = db.getSiteQuota.get(name);
+    if (quota) {
+      const newUsed = quota.used_bytes + file.size;
+      if (newUsed > quota.quota_bytes) {
+        const usedMB = Math.round(quota.used_bytes / 1024 / 1024 * 10) / 10;
+        const quotaMB = Math.round(quota.quota_bytes / 1024 / 1024 * 10) / 10;
+        return c.json({
+          error: `Quota exceeded. Used: ${usedMB}MB / ${quotaMB}MB. File size: ${Math.round(file.size / 1024)}KB`
+        }, 413);
+      }
+    }
+
     const subPath = query.path || "";
     const relativePath = join(subPath, file.name);
 
@@ -382,9 +398,13 @@ app.openapi(
       return c.json({ error: "Invalid path" }, 400);
     }
 
-    // Check if file exists
-    if (existsSync(targetPath) && query.overwrite !== "true") {
-      return c.json({ error: "File already exists. Use ?overwrite=true to replace" }, 409);
+    // Get existing file size if overwriting (to adjust quota correctly)
+    let existingSize = 0;
+    if (existsSync(targetPath)) {
+      if (query.overwrite !== "true") {
+        return c.json({ error: "File already exists. Use ?overwrite=true to replace" }, 409);
+      }
+      existingSize = statSync(targetPath).size;
     }
 
     // Create directory if needed
@@ -393,6 +413,12 @@ app.openapi(
     // Write file
     const buffer = await file.arrayBuffer();
     await Bun.write(targetPath, buffer);
+
+    // Update used_bytes (add new file size, subtract old if overwriting)
+    const sizeDelta = file.size - existingSize;
+    if (sizeDelta !== 0) {
+      db.incrementUsedBytes.run(sizeDelta, name);
+    }
 
     return c.json({
       path: relativePath,
@@ -478,7 +504,14 @@ app.openapi(
       return c.json({ error: "File not found" }, 404);
     }
 
+    // Get file size before deleting to update quota
+    const fileSize = statSync(fullPath).size;
+
     unlinkSync(fullPath);
+
+    // Update used_bytes
+    db.decrementUsedBytes.run(fileSize, name);
+
     return c.json({ success: true, message: `Deleted ${filePath}` });
   }
 );
