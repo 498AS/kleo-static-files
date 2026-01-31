@@ -323,38 +323,40 @@ Buscar config en:
 ## Checklist de Implementación
 
 ### Fase 1: Seguridad
-- [ ] Implementar `safePath()` helper
-- [ ] Aplicar validación en upload endpoint
-- [ ] Aplicar validación en delete endpoint
-- [ ] Crear `scripts/create-key.ts`
-- [ ] Añadir límite de tamaño de archivo
-- [ ] Tests de path traversal
+- [x] Implementar `safePath()` helper
+- [x] Aplicar validación en upload endpoint
+- [x] Aplicar validación en delete endpoint
+- [x] Crear `scripts/create-key.ts`
+- [x] Añadir límite de tamaño de archivo
+- [x] Tests de path traversal
 
 ### Fase 2: Caddy
-- [ ] Decidir arquitectura (wildcard vs dinámico)
-- [ ] Implementar script de sync o file server
-- [ ] Actualizar Caddyfile
+- [x] Decidir arquitectura (wildcard vs dinámico) → sync-caddy.ts genera Caddyfile
+- [x] Implementar script de sync o file server → scripts/sync-caddy.ts
+- [x] Actualizar server para llamar sync después de cambios
 - [ ] Test de persistencia tras reinicio
 
 ### Fase 3: Observabilidad
-- [ ] Añadir `/health` endpoint
-- [ ] Implementar logging middleware
-- [ ] Documentar formato de logs
+- [x] Añadir `/health` endpoint
+- [x] Implementar logging middleware
+- [x] Documentar formato de logs
 
 ### Fase 4: Rate Limiting
-- [ ] Implementar rate limit middleware
-- [ ] Añadir quotas a schema
-- [ ] Implementar check de quota en upload
+- [x] Implementar rate limit middleware
+- [x] Añadir quotas a schema
+- [x] Implementar check de quota en upload
 
 ### Fase 5: CLI
-- [ ] Validar env vars al inicio
-- [ ] Mejorar mensajes de error
+- [x] Validar env vars al inicio
+- [x] Mejorar mensajes de error
 - [ ] (Opcional) Config file support
 
 ### Fase 6: Docs
-- [ ] Actualizar SKILL.md
-- [ ] Añadir troubleshooting
-- [ ] Documentar env vars completas
+- [x] Actualizar SKILL.md → movido a static-files/SKILL.md
+- [x] Añadir troubleshooting
+- [x] Documentar env vars completas
+- [x] Crear install.sh automatizado
+- [x] Crear AI agent skill con referencias y scripts
 
 ---
 
