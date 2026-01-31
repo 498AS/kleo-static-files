@@ -92,6 +92,7 @@ cmd_clean_deploy() {
 cmd_share() {
   local file="$1"
   local site="${2:-quick-share}"
+  local domain="${SF_DOMAIN:-}"
 
   if [ -z "$file" ]; then
     echo "Usage: sf-helper.sh share <file> [site-name]"
@@ -103,6 +104,11 @@ cmd_share() {
     exit 1
   fi
 
+  if [ -z "$domain" ]; then
+    echo "Warning: SF_DOMAIN not set, URL may be incomplete" >&2
+    domain="yourdomain.com"
+  fi
+
   # Create site if needed
   if ! $SF_CLI sites list --json 2>/dev/null | grep -q "\"name\":\"$site\""; then
     $SF_CLI sites create "$site" >/dev/null
@@ -112,13 +118,18 @@ cmd_share() {
   local filename=$(basename "$file")
   $SF_CLI upload "$file" "$site" --overwrite >/dev/null
 
-  echo "https://$site.${SF_DOMAIN:-498as.com}/$filename"
+  echo "https://$site.$domain/$filename"
 }
 
 # List all sites with their URLs
 # Usage: sf-helper.sh list
 cmd_list() {
-  local domain="${SF_DOMAIN:-498as.com}"
+  local domain="${SF_DOMAIN:-}"
+  
+  if [ -z "$domain" ]; then
+    echo "Warning: SF_DOMAIN not set, using placeholder" >&2
+    domain="yourdomain.com"
+  fi
   
   echo "Sites:"
   echo ""
@@ -145,7 +156,7 @@ Commands:
 Environment:
   SF_API_URL   API endpoint (required)
   SF_API_KEY   API key (required)
-  SF_DOMAIN    Domain for URLs (default: 498as.com)
+  SF_DOMAIN    Domain for URLs (required for URL display)
 
 Examples:
   sf-helper.sh deploy docs ./build

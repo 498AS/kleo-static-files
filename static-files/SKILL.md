@@ -11,12 +11,15 @@ description: >
 
 Host static content on `*.{domain}` subdomains with automatic SSL.
 
+> **Note:** The domain is configured via `SF_DOMAIN` environment variable (set during installation).
+> Examples below use `yourdomain.com` as placeholder.
+
 ## Quick Reference
 
 ```bash
 # Create site
 sf sites create mysite
-# → https://mysite.498as.com
+# → https://mysite.yourdomain.com (or your configured domain)
 
 # Upload file
 sf upload ./index.html mysite
@@ -42,6 +45,7 @@ sf sites delete mysite
 ```bash
 export SF_API_URL=http://localhost:3000   # API endpoint
 export SF_API_KEY=sk_xxxxx                # Your API key
+export SF_DOMAIN=yourdomain.com           # Your configured domain (optional, for URL display)
 ```
 
 ## Workflows
@@ -55,8 +59,8 @@ sf sites create docs
 # 2. Upload the build directory
 sf upload ./build docs
 
-# 3. Verify
-curl -I https://docs.498as.com
+# 3. Verify (replace with your domain)
+curl -I https://docs.yourdomain.com
 ```
 
 ### Protected File Sharing
@@ -70,7 +74,7 @@ sf sites auth private user:strongpassword
 sf upload ./reports private
 
 # 3. Share URL + credentials
-# https://private.498as.com (user / strongpassword)
+# https://private.yourdomain.com (user / strongpassword)
 ```
 
 ### Update Existing Files
@@ -177,8 +181,8 @@ sf files mysite delete large-file.zip
 
 ### Site not accessible via HTTPS
 ```bash
-# Verify DNS points to server
-dig mysite.498as.com
+# Verify DNS points to server (use your domain)
+dig mysite.yourdomain.com
 
 # Check Caddy config
 cat /etc/caddy/sites.d/static-files.caddy
