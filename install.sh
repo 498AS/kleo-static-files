@@ -286,6 +286,16 @@ EOF
     api_key=$(bun run scripts/create-key.ts "admin" 2>&1 | grep "API Key:" | awk '{print $3}' || echo "")
   fi
   
+  # Fix database permissions (DB is created by root during install)
+  # Make data directory and DB accessible for the service
+  if [ -f "$DATA_DIR/data/static-files.db" ]; then
+    chmod 664 "$DATA_DIR/data/static-files.db" 2>/dev/null || true
+    chmod 664 "$DATA_DIR/data/static-files.db-shm" 2>/dev/null || true
+    chmod 664 "$DATA_DIR/data/static-files.db-wal" 2>/dev/null || true
+  fi
+  chmod 775 "$DATA_DIR/data" 2>/dev/null || true
+  chmod 775 "$DATA_DIR/sites" 2>/dev/null || true
+  
   # === Output ===
   echo ""
   echo "========================================"
