@@ -83,7 +83,17 @@ sf stats <site>                   # Site stats
 
 ## For AI Agents
 
-This tool is designed to be used by AI agents. See the [static-files skill](./static-files/) for integration with OpenClaw and other agent frameworks.
+This tool is designed to be used by AI agents.
+
+### Install Skill from ClawHub
+
+```bash
+clawhub install kleo-static-files
+```
+
+Or download manually: [releases.498as.com/static-files.zip](https://releases.498as.com/static-files.zip)
+
+See the [static-files skill](./static-files/) for integration with OpenClaw and other agent frameworks.
 
 ### Quick Reference for Agents
 

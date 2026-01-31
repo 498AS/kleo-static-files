@@ -315,7 +315,9 @@ EOF
   "api_key": "$api_key",
   "domain": "$DOMAIN",
   "data_dir": "$DATA_DIR",
-  "service": "$SERVICE_NAME"
+  "service": "$SERVICE_NAME",
+  "skill_clawhub": "kleo-static-files",
+  "skill_download": "https://releases.498as.com/static-files.zip"
 }
 EOF
   echo "KLEO_SF_CONFIG_END"
@@ -330,6 +332,10 @@ EOF
   echo "Service commands:"
   echo "  systemctl status $SERVICE_NAME"
   echo "  journalctl -u $SERVICE_NAME -f"
+  echo ""
+  echo "AI Agent Skill:"
+  echo "  clawhub install kleo-static-files"
+  echo "  # or: https://releases.498as.com/static-files.zip"
   echo ""
 }
 
