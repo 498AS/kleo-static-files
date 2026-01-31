@@ -120,7 +120,14 @@ export async function sites(args: string[], opts: Options) {
 
 // === Upload ===
 async function uploadSingleFile(filePath: string, site: string, subPath: string | undefined, opts: Options) {
-  const file = Bun.file(filePath);
+  const bunFile = Bun.file(filePath);
+  
+  // Bun.file() uses full path as name (e.g., /tmp/test.html)
+  // We need to extract just the filename for the server
+  const filename = basename(filePath);
+  const blob = await bunFile.arrayBuffer();
+  const file = new File([blob], filename, { type: bunFile.type });
+  
   const result = await client.uploadFile(site, file, subPath, opts.overwrite);
 
   if (opts.json) {
@@ -143,7 +150,11 @@ async function uploadDirectory(dirPath: string, site: string, basePath: string, 
     if (entry.isDirectory()) {
       results.push(...await uploadDirectory(fullPath, site, targetPath, opts));
     } else {
-      const file = Bun.file(fullPath);
+      // Bun.file() uses full path as name - extract just the filename
+      const bunFile = Bun.file(fullPath);
+      const blob = await bunFile.arrayBuffer();
+      const file = new File([blob], entry.name, { type: bunFile.type });
+      
       const subDir = basePath || undefined;
       const result = await client.uploadFile(site, file, subDir, opts.overwrite);
       results.push(result);
