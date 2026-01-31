@@ -213,17 +213,20 @@ app.openapi(
       authHash = hashPassword(body.auth.pass);
     }
 
-    // Add to Caddy
+    // Insert into DB first
+    const site = db.insertSite.get(body.name, sitePath, authUser, authHash);
+
+    // Sync to Caddy (regenerates config from DB)
     try {
       await caddy.addSite(body.name, sitePath, authHash ? { user: authUser!, hash: authHash } : undefined);
+      await caddy.syncCaddy();
     } catch (e: any) {
-      // Clean up on failure
+      // Rollback: remove from DB and filesystem
+      db.deleteSiteQuery.run(body.name);
       rmSync(sitePath, { recursive: true, force: true });
-      return c.json({ error: e.message }, 500);
+      return c.json({ error: `Failed to configure Caddy: ${e.message}` }, 500);
     }
 
-    // Insert into DB
-    const site = db.insertSite.get(body.name, sitePath, authUser, authHash);
     return c.json(site, 201);
   }
 );
@@ -257,14 +260,15 @@ app.openapi(
       return c.json({ error: "Site not found" }, 404);
     }
 
-    // Remove from Caddy
-    await caddy.removeSite(name);
+    // Delete from DB first
+    db.deleteSiteQuery.run(name);
 
     // Delete files
     rmSync(site.path, { recursive: true, force: true });
 
-    // Delete from DB
-    db.deleteSiteQuery.run(name);
+    // Sync Caddy (removes the site from config)
+    await caddy.removeSite(name);
+    await caddy.syncCaddy();
 
     return c.json({ success: true, message: `Site ${name} deleted` });
   }
@@ -308,11 +312,13 @@ app.openapi(
       authHash = hashPassword(body.auth.pass);
     }
 
-    // Update Caddy
-    await caddy.updateSiteAuth(name, site.path, authHash ? { user: authUser!, hash: authHash } : null);
-
-    // Update DB
+    // Update DB first
     const updated = db.updateSiteAuth.get(authUser, authHash, name);
+
+    // Sync Caddy
+    await caddy.updateSiteAuth(name, site.path, authHash ? { user: authUser!, hash: authHash } : null);
+    await caddy.syncCaddy();
+
     return c.json(updated);
   }
 );
