@@ -1,6 +1,8 @@
-# kleo-static-files
+# Kleo Static Files
 
-Static file hosting on subdomains with automatic SSL, basic auth, and quota management.
+> Part of [Kleo](https://kleo.498as.com) — your digital fox
+
+Host static files on subdomains with automatic SSL, authentication, and quota management.
 
 ```bash
 sf sites create docs
@@ -8,58 +10,57 @@ sf upload ./build docs
 # → https://docs.498as.com
 ```
 
-## Features
+## Installation
 
-- **Subdomain hosting**: Each site gets `{name}.{domain}`
-- **Automatic SSL**: Via Caddy, zero config
-- **Basic auth**: Optional password protection
-- **Quotas**: Per-site storage limits
-- **Rate limiting**: API protection built-in
-- **CLI & API**: Full control via `sf` command or REST API
-
-## Quick Start
-
-### Install
+### Quick Install (Linux)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/498AS/kleo-static-files/main/install.sh | sudo bash
 ```
 
-### Configure
+This installs the server, configures Caddy, creates a systemd service, and generates your first API key.
+
+### Download Binary
+
+Pre-built binaries for the CLI:
+
+```bash
+# Linux x64
+curl -fsSL https://github.com/498AS/kleo-static-files/releases/latest/download/sf-linux-x64 -o sf
+chmod +x sf && sudo mv sf /usr/local/bin/
+
+# macOS (Apple Silicon)
+curl -fsSL https://github.com/498AS/kleo-static-files/releases/latest/download/sf-darwin-arm64 -o sf
+chmod +x sf && sudo mv sf /usr/local/bin/
+
+# macOS (Intel)
+curl -fsSL https://github.com/498AS/kleo-static-files/releases/latest/download/sf-darwin-x64 -o sf
+chmod +x sf && sudo mv sf /usr/local/bin/
+```
+
+### From Source
+
+```bash
+git clone https://github.com/498AS/kleo-static-files.git
+cd kleo-static-files
+bun install
+```
+
+## Configuration
 
 ```bash
 export SF_API_URL=http://localhost:3000
-export SF_API_KEY=sk_xxxxx  # shown during install
+export SF_API_KEY=sk_xxxxx
 ```
 
-### Use
-
-```bash
-# Create a site
-sf sites create mysite
-
-# Upload files
-sf upload ./index.html mysite
-sf upload ./images mysite
-
-# Add auth (optional)
-sf sites auth mysite admin:secretpass
-
-# View files
-sf files mysite
-
-# Check stats
-sf stats mysite
-```
-
-## CLI Reference
+## Usage
 
 ### Sites
 
 ```bash
 sf sites list                     # List all sites
 sf sites create <name>            # Create site
-sf sites delete <name>            # Delete site + files
+sf sites delete <name>            # Delete site and files
 sf sites auth <name> <user:pass>  # Set basic auth
 sf sites auth <name> --remove     # Remove auth
 ```
@@ -67,7 +68,7 @@ sf sites auth <name> --remove     # Remove auth
 ### Files
 
 ```bash
-sf upload <path> <site> [subdir]  # Upload file/directory
+sf upload <path> <site>           # Upload file or directory
 sf upload <path> <site> --overwrite
 sf files <site>                   # List files
 sf files <site> delete <path>     # Delete file
@@ -76,9 +77,41 @@ sf files <site> delete <path>     # Delete file
 ### Stats
 
 ```bash
-sf stats         # Global stats
-sf stats <site>  # Site stats
+sf stats                          # Global stats
+sf stats <site>                   # Site stats
 ```
+
+## For AI Agents
+
+This tool is designed to be used by AI agents. See the [static-files skill](./static-files/) for integration with OpenClaw and other agent frameworks.
+
+### Quick Reference for Agents
+
+```bash
+# Deploy a static website
+sf sites create mysite
+sf upload ./dist mysite
+# Result: https://mysite.DOMAIN
+
+# Protected file sharing
+sf sites create private
+sf sites auth private user:pass
+sf upload ./sensitive.pdf private
+# Result: https://private.DOMAIN (requires auth)
+
+# Clean deploy (delete all, upload fresh)
+sf sites delete mysite
+sf sites create mysite
+sf upload ./new-build mysite
+```
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SF_API_URL` | - | API endpoint (required) |
+| `SF_API_KEY` | - | API key (required) |
+| `SF_DOMAIN` | 498as.com | Base domain for sites |
 
 ## API
 
@@ -91,17 +124,34 @@ All endpoints require `Authorization: Bearer <api-key>`
 | POST | `/sites` | Create site |
 | DELETE | `/sites/{name}` | Delete site |
 | PATCH | `/sites/{name}` | Update auth |
-| GET | `/sites/{name}/files` | List files |
 | POST | `/sites/{name}/files` | Upload file |
+| GET | `/sites/{name}/files` | List files |
 | DELETE | `/sites/{name}/files/{path}` | Delete file |
 | GET | `/stats` | Global stats |
-| GET | `/stats/{name}` | Site stats |
 
-Full OpenAPI spec: `GET /openapi.json`
+OpenAPI spec: `GET /openapi.json`
 
-## Configuration
+## Architecture
 
-Environment variables (in `.env`):
+```
+┌─────────┐     ┌──────────┐     ┌────────┐
+│ sf CLI  │────▶│  Server  │────▶│ SQLite │
+└─────────┘     └──────────┘     └────────┘
+                     │
+                     ▼
+               ┌──────────┐
+               │  Caddy   │ ← serves files with SSL
+               └──────────┘
+```
+
+- **Server**: Hono-based API (port 3000)
+- **Storage**: SQLite for metadata, filesystem for files
+- **SSL**: Automatic via Caddy wildcard
+- **Auth**: bcrypt hashes, Caddy basic_auth compatible
+
+## Server Configuration
+
+Environment variables for the server:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -112,58 +162,14 @@ Environment variables (in `.env`):
 | `SF_MAX_FILE_MB` | 50 | Max file size |
 | `SF_RATE_LIMIT_MAX` | 100 | Requests per minute |
 
-## AI Agent Skill
-
-This repo includes an OpenClaw skill for AI agents:
-
-```
-static-files/
-├── SKILL.md           # Agent instructions
-├── references/
-│   └── install.md     # Installation guide
-└── scripts/
-    └── sf-helper.sh   # Helper commands
-```
-
-Install the skill in OpenClaw:
-```bash
-cp -r static-files /path/to/openclaw/skills/
-```
-
-## Architecture
-
-```
-┌─────────────┐     ┌──────────────┐     ┌─────────┐
-│   Client    │────▶│  sf CLI/API  │────▶│ SQLite  │
-└─────────────┘     └──────────────┘     └─────────┘
-                           │
-                           ▼
-                    ┌──────────────┐
-                    │    Caddy     │◀──── sync-caddy.ts
-                    │ (file_server)│
-                    └──────────────┘
-                           │
-                           ▼
-                    ┌──────────────┐
-                    │    Files     │
-                    │ /var/lib/... │
-                    └──────────────┘
-```
-
 ## Development
 
 ```bash
-# Install deps
 bun install
-
-# Run server
-bun run server/index.ts
-
-# Run CLI
-bun run cli/index.ts sites list
-
-# Generate types from OpenAPI
-bun run scripts/gen-types.ts
+bun run dev          # Start server with watch
+bun run build        # Build binaries
+bun run create-key   # Generate API key
+bun run sync-caddy   # Regenerate Caddy config
 ```
 
 ## License

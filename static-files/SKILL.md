@@ -189,4 +189,25 @@ bun run /opt/kleo-static-files/scripts/sync-caddy.ts --reload
 
 ## Installation
 
-See [references/install.md](references/install.md) for installation instructions.
+### Server Installation (run once on host)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/498AS/kleo-static-files/main/install.sh | sudo bash
+```
+
+The installer outputs JSON with connection details between `KLEO_SF_CONFIG_BEGIN` and `KLEO_SF_CONFIG_END` markers. Parse this to get `api_url` and `api_key`.
+
+### After Installation
+
+```bash
+export SF_API_URL=http://localhost:3000
+export SF_API_KEY=sk_xxxxx  # from installer output
+```
+
+### Check Status
+
+```bash
+sudo /opt/kleo-static-files/install.sh --status
+```
+
+See [references/install.md](references/install.md) for manual installation.

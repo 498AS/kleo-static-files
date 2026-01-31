@@ -1,13 +1,35 @@
 {
-  "name": "static-files",
+  "name": "@kleo/static-files",
+  "version": "1.0.0",
+  "description": "Host static files on subdomains with automatic SSL. Part of Kleo.",
   "type": "module",
+  "bin": {
+    "sf": "./cli/index.ts"
+  },
   "scripts": {
     "dev": "bun run --watch server/index.ts",
     "start": "bun run server/index.ts",
     "test": "bun test",
+    "build": "bun run scripts/build.ts",
     "gen-types": "bun run scripts/gen-types.ts",
-    "create-key": "bun run scripts/create-key.ts"
+    "create-key": "bun run scripts/create-key.ts",
+    "sync-caddy": "bun run scripts/sync-caddy.ts"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/498AS/kleo-static-files.git"
+  },
+  "homepage": "https://kleo.498as.com",
+  "keywords": [
+    "static-files",
+    "hosting",
+    "caddy",
+    "ssl",
+    "cli",
+    "kleo"
+  ],
+  "author": "498AS",
+  "license": "MIT",
   "dependencies": {
     "@hono/zod-openapi": "^0.18.4",
     "hono": "^4.6.0"

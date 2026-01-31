@@ -3,3 +3,6 @@ data/
 sites/
 *.db
 .DS_Store
+
+# Build artifacts
+dist/sf-*
