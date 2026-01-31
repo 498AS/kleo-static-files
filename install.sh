@@ -253,14 +253,15 @@ EOF
   # Make scripts executable
   chmod +x "$INSTALL_DIR/scripts/"*.ts
   
-  # Update Caddyfile to import sites
-  if ! grep -q "import $CADDY_SITES_DIR" /etc/caddy/Caddyfile 2>/dev/null; then
-    log "Configuring Caddy..."
-    if grep -q "^}" /etc/caddy/Caddyfile; then
-      sed -i "/^}/a\\\\nimport $CADDY_SITES_DIR/*.caddy" /etc/caddy/Caddyfile
-    else
-      echo -e "\nimport $CADDY_SITES_DIR/*.caddy" >> /etc/caddy/Caddyfile
-    fi
+  # Update Caddyfile to import sites (remove duplicates first, then ensure exactly one)
+  log "Configuring Caddy..."
+  if [ -f /etc/caddy/Caddyfile ]; then
+    # Remove any existing import lines for our sites dir (prevents duplicates)
+    sed -i "\|^import $CADDY_SITES_DIR|d" /etc/caddy/Caddyfile
+    # Add import at end of file
+    echo "import $CADDY_SITES_DIR/*.caddy" >> /etc/caddy/Caddyfile
+  else
+    warn "Caddyfile not found at /etc/caddy/Caddyfile - skipping import configuration"
   fi
   
   # Initialize empty caddy snippet
