@@ -6,11 +6,12 @@ import {
   SiteSchema, CreateSiteSchema, UpdateSiteAuthSchema,
   FileSchema, UploadResultSchema,
   StatsSchema, SiteStatsSchema,
-  ErrorSchema, SuccessSchema
+  ErrorSchema, SuccessSchema, HealthSchema
 } from "./schema";
 import * as db from "./db";
 import * as caddy from "./caddy";
 import { safePath } from "./utils";
+import { logging } from "./middleware";
 
 const app = new OpenAPIHono();
 
@@ -21,10 +22,13 @@ const MAX_FILE_SIZE = parseInt(process.env.SF_MAX_FILE_MB || "50") * 1024 * 1024
 // Ensure sites directory exists
 mkdirSync(SITES_ROOT, { recursive: true });
 
+// === Logging middleware ===
+app.use("*", logging());
+
 // === Auth middleware ===
 app.use("*", async (c, next) => {
-  // Skip auth for openapi.json
-  if (c.req.path === "/openapi.json") return next();
+  // Skip auth for openapi.json and health check
+  if (c.req.path === "/openapi.json" || c.req.path === "/health") return next();
 
   const authHeader = c.req.header("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
@@ -97,6 +101,49 @@ function getDirSize(dir: string): number {
 }
 
 // === Routes ===
+
+// Health check (no auth required)
+app.openapi(
+  createRoute({
+    method: "get",
+    path: "/health",
+    tags: ["system"],
+    summary: "Health check endpoint",
+    responses: {
+      200: {
+        description: "Service is healthy",
+        content: { "application/json": { schema: HealthSchema } },
+      },
+      500: {
+        description: "Service is unhealthy",
+        content: { "application/json": { schema: HealthSchema } },
+      },
+    },
+  }),
+  (c) => {
+    try {
+      // Check DB connection by running a simple query
+      db.getSites.all();
+      return c.json({
+        status: "ok" as const,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (e: any) {
+      return c.json({
+        status: "error" as const,
+        timestamp: new Date().toISOString(),
+        error: e.message,
+      }, 500);
+    }
+  }
+);
+
+// TODO: Fase 2 - Caddy Integration
+// Cuando se implemente, considerar:
+// - Wildcard subdomain approach vs dynamic routes
+// - Persistencia de configuración tras reinicio
+// - Quien sirve los archivos (Caddy directo vs app)
+// Ver docs/plans/001-production-ready.md para opciones
 
 // List sites
 app.openapi(

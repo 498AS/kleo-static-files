@@ -67,6 +67,13 @@ export const SuccessSchema = z.object({
   message: z.string().optional(),
 });
 
+// === Health ===
+export const HealthSchema = z.object({
+  status: z.enum(["ok", "error"]),
+  timestamp: z.string(),
+  error: z.string().optional(),
+});
+
 // Types
 export type Site = z.infer<typeof SiteSchema>;
 export type CreateSite = z.infer<typeof CreateSiteSchema>;
