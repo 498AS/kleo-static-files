@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { sites, upload, files, stats } from "./commands";
 import { MAIN_HELP } from "./help";
+import { validateConfig } from "./client";
 
 interface Options {
   json?: boolean;
@@ -47,6 +48,23 @@ export async function run(argv: string[]) {
   if (!handler) {
     console.error(`Unknown command: ${command}`);
     console.log(MAIN_HELP);
+    process.exit(1);
+  }
+
+  // Validate configuration before running commands
+  const config = validateConfig();
+  
+  // Show warnings (but don't block)
+  for (const warning of config.warnings) {
+    console.error(`Warning: ${warning}`);
+  }
+  
+  // Exit on errors
+  if (!config.valid) {
+    console.error("");
+    for (const error of config.errors) {
+      console.error(`Error: ${error}`);
+    }
     process.exit(1);
   }
 
