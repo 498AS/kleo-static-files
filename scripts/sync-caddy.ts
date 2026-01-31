@@ -13,13 +13,14 @@
  */
 
 import { Database } from "bun:sqlite";
-import { mkdirSync, writeFileSync, existsSync } from "fs";
+import { mkdirSync, writeFileSync, existsSync, readFileSync } from "fs";
 import { dirname } from "path";
-import { $ } from "bun";
 
 // Config
 const DB_PATH = process.env.SF_DB_PATH || "/var/lib/kleo-static-files/data/static-files.db";
 const CADDY_SNIPPET = process.env.SF_CADDY_SNIPPET || "/etc/caddy/sites.d/static-files.caddy";
+const CADDY_CONFIG = process.env.SF_CADDY_CONFIG || "/etc/caddy/Caddyfile";
+const CADDY_ADMIN = process.env.CADDY_ADMIN_URL || "http://localhost:2019";
 const DOMAIN = process.env.SF_DOMAIN || "498as.com";
 const BIND_IPS = process.env.SF_BIND_IPS || "116.203.74.64 2a01:4f8:1c1b:8985::1";
 
@@ -78,15 +79,48 @@ function generateCaddyConfig(sites: Site[]): string {
   return lines.join("\n");
 }
 
+async function reloadCaddy(): Promise<void> {
+  // Use Caddy Admin API to reload config
+  // This doesn't require root/systemd access
+  try {
+    const caddyfile = readFileSync(CADDY_CONFIG, "utf-8");
+    
+    const response = await fetch(`${CADDY_ADMIN}/load`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/caddyfile",
+      },
+      body: caddyfile,
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Caddy API error: ${error}`);
+    }
+    
+    console.log("Caddy reloaded successfully (via Admin API)");
+  } catch (e: any) {
+    // If Admin API fails, the config is still written
+    // Caddy will pick it up on next restart
+    console.log("Note: Could not reload Caddy via API:", e.message);
+    console.log("Config written - will apply on Caddy restart");
+  }
+}
+
 async function main() {
   const shouldReload = process.argv.includes("--reload");
   const dryRun = process.argv.includes("--dry-run");
 
-  // Check if DB exists
+  // If DB doesn't exist, create empty config (server will create DB on first run)
   if (!existsSync(DB_PATH)) {
-    console.error(`Database not found: ${DB_PATH}`);
-    console.error("Run the server first to initialize the database.");
-    process.exit(1);
+    console.log("Database not found, creating empty Caddy config");
+    mkdirSync(dirname(CADDY_SNIPPET), { recursive: true });
+    writeFileSync(CADDY_SNIPPET, "# No sites yet - database not initialized\n");
+    
+    if (shouldReload) {
+      await reloadCaddy();
+    }
+    return;
   }
 
   // Read sites from DB
@@ -117,19 +151,7 @@ async function main() {
   // Reload Caddy if requested
   if (shouldReload) {
     console.log("Reloading Caddy...");
-    try {
-      await $`systemctl reload caddy`.quiet();
-      console.log("Caddy reloaded successfully");
-    } catch (e: any) {
-      // Try caddy reload directly if systemctl fails
-      try {
-        await $`caddy reload --config /etc/caddy/Caddyfile`.quiet();
-        console.log("Caddy reloaded successfully");
-      } catch (e2: any) {
-        console.error("Failed to reload Caddy:", e2.message);
-        process.exit(1);
-      }
-    }
+    await reloadCaddy();
   } else {
     console.log("Run with --reload to apply changes to Caddy");
   }

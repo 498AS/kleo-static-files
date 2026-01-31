@@ -27,9 +27,13 @@ export async function syncCaddy(): Promise<void> {
   }
 
   try {
-    await $`bun run ${SCRIPT_PATH} --reload`.quiet();
+    // Use full path to bun since systemd might not have it in PATH
+    const bunPath = process.execPath;
+    const scriptDir = dirname(SCRIPT_PATH);
+    await $`${bunPath} run ${SCRIPT_PATH} --reload`.cwd(dirname(scriptDir)).quiet();
   } catch (e: any) {
     console.error("Failed to sync Caddy:", e.message);
+    console.error("Script path:", SCRIPT_PATH);
     throw new Error(`Caddy sync failed: ${e.message}`);
   }
 }

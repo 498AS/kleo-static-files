@@ -242,7 +242,7 @@ Type=simple
 WorkingDirectory=$INSTALL_DIR
 EnvironmentFile=$INSTALL_DIR/.env
 ExecStart=$(which bun) run server/index.ts
-ExecStartPost=$INSTALL_DIR/scripts/sync-caddy.ts --reload
+ExecStartPost=$(which bun) run $INSTALL_DIR/scripts/sync-caddy.ts --reload
 Restart=on-failure
 RestartSec=5
 

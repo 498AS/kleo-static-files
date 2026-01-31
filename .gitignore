@@ -6,3 +6,4 @@ sites/
 
 # Build artifacts
 dist/sf-*
+.env
