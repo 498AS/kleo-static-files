@@ -24,6 +24,7 @@ DATA_DIR="/var/lib/kleo-static-files"
 LOG_DIR="/var/log/caddy"
 CADDY_SITES_DIR="/etc/caddy/sites.d"
 SERVICE_NAME="kleo-static-files"
+SERVICE_USER="kleo-sf"
 VERSION="1.0.0"
 
 # Defaults
@@ -201,6 +202,12 @@ do_install() {
   log "Installing dependencies..."
   bun install --frozen-lockfile 2>/dev/null || bun install
   
+  # Create dedicated service user (if not exists)
+  if ! id "$SERVICE_USER" &>/dev/null; then
+    log "Creating service user: $SERVICE_USER..."
+    useradd -r -s /usr/sbin/nologin -d "$DATA_DIR" -M "$SERVICE_USER"
+  fi
+  
   # Create directories
   mkdir -p "$DATA_DIR/data"
   mkdir -p "$DATA_DIR/sites"
@@ -239,12 +246,21 @@ After=network.target caddy.service
 
 [Service]
 Type=simple
+User=$SERVICE_USER
+Group=$SERVICE_USER
 WorkingDirectory=$INSTALL_DIR
 EnvironmentFile=$INSTALL_DIR/.env
 ExecStart=$(which bun) run server/index.ts
 ExecStartPost=$(which bun) run $INSTALL_DIR/scripts/sync-caddy.ts --reload
 Restart=on-failure
 RestartSec=5
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=$DATA_DIR $CADDY_SITES_DIR
+PrivateTmp=true
 
 [Install]
 WantedBy=multi-user.target
@@ -267,6 +283,12 @@ EOF
   # Initialize empty caddy snippet
   touch "$CADDY_SITES_DIR/static-files.caddy"
   
+  # Set ownership for service user
+  log "Setting permissions..."
+  chown -R "$SERVICE_USER:$SERVICE_USER" "$DATA_DIR"
+  chown -R "$SERVICE_USER:$SERVICE_USER" "$INSTALL_DIR"
+  chown "$SERVICE_USER:$SERVICE_USER" "$CADDY_SITES_DIR/static-files.caddy"
+  
   # Enable and start service
   log "Starting service..."
   systemctl daemon-reload
@@ -287,14 +309,12 @@ EOF
   fi
   
   # Fix database permissions (DB is created by root during install)
-  # Make data directory and DB accessible for the service
+  # Transfer ownership to the service user
   if [ -f "$DATA_DIR/data/static-files.db" ]; then
-    chmod 664 "$DATA_DIR/data/static-files.db" 2>/dev/null || true
-    chmod 664 "$DATA_DIR/data/static-files.db-shm" 2>/dev/null || true
-    chmod 664 "$DATA_DIR/data/static-files.db-wal" 2>/dev/null || true
+    chown "$SERVICE_USER:$SERVICE_USER" "$DATA_DIR/data/static-files.db" 2>/dev/null || true
+    chown "$SERVICE_USER:$SERVICE_USER" "$DATA_DIR/data/static-files.db-shm" 2>/dev/null || true
+    chown "$SERVICE_USER:$SERVICE_USER" "$DATA_DIR/data/static-files.db-wal" 2>/dev/null || true
   fi
-  chmod 775 "$DATA_DIR/data" 2>/dev/null || true
-  chmod 775 "$DATA_DIR/sites" 2>/dev/null || true
   
   # === Output ===
   echo ""
