@@ -1,6 +1,6 @@
 import * as client from "./client";
 import { DOMAIN } from "./client";
-import { SITES_HELP, UPLOAD_HELP, FILES_HELP, STATS_HELP } from "./help";
+import { SITES_HELP, UPLOAD_HELP, FILES_HELP, STATS_HELP, DOCTOR_HELP } from "./help";
 import { statSync, readdirSync } from "fs";
 import { join, basename } from "path";
 
@@ -262,4 +262,138 @@ export async function stats(args: string[], opts: Options) {
   console.log(`  Files:    ${s.total_files}`);
   console.log(`  Size:     ${formatBytes(s.total_size)}`);
   console.log(`  Requests: ${s.total_requests}`);
+}
+
+type DoctorStatus = "pass" | "warn" | "fail";
+type DoctorCheck = {
+  status: DoctorStatus;
+  message: string;
+  details?: string;
+};
+
+type DoctorReport = {
+  ok: boolean;
+  api_url: string;
+  checks: {
+    env: {
+      api_url_set: boolean;
+      api_key_present: boolean;
+      domain_set: boolean;
+    };
+    health: DoctorCheck;
+    auth: DoctorCheck;
+  };
+};
+
+async function checkHealth(apiUrl: string): Promise<DoctorCheck> {
+  try {
+    const res = await fetch(`${apiUrl}/health`);
+    if (res.ok) {
+      return { status: "pass", message: "Health endpoint reachable", details: `HTTP ${res.status}` };
+    }
+    return {
+      status: "fail",
+      message: "Health endpoint returned error",
+      details: `HTTP ${res.status}`,
+    };
+  } catch (e: any) {
+    return {
+      status: "fail",
+      message: "Health endpoint unreachable",
+      details: e?.message || "Unknown network error",
+    };
+  }
+}
+
+async function checkAuth(apiUrl: string, apiKey: string): Promise<DoctorCheck> {
+  if (!apiKey) {
+    return {
+      status: "fail",
+      message: "Missing SF_API_KEY",
+      details: "Set it with: export SF_API_KEY=sk_xxxxx",
+    };
+  }
+
+  try {
+    const res = await fetch(`${apiUrl}/sites`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+
+    if (res.ok) {
+      return { status: "pass", message: "Authenticated request succeeded", details: `HTTP ${res.status}` };
+    }
+
+    if (res.status === 401) {
+      return { status: "fail", message: "Authentication failed", details: "Invalid SF_API_KEY" };
+    }
+
+    return {
+      status: "fail",
+      message: "Authenticated request failed",
+      details: `HTTP ${res.status}`,
+    };
+  } catch (e: any) {
+    return {
+      status: "fail",
+      message: "Authenticated request unreachable",
+      details: e?.message || "Unknown network error",
+    };
+  }
+}
+
+export async function doctor(args: string[], opts: Options) {
+  if (args.length > 0) {
+    console.log(DOCTOR_HELP);
+    process.exit(1);
+  }
+
+  const envApiUrl = process.env.SF_API_URL || "";
+  const envApiKey = process.env.SF_API_KEY || "";
+  const envDomain = process.env.SF_DOMAIN || "";
+  const apiUrl = envApiUrl || "http://localhost:3000";
+
+  const health = await checkHealth(apiUrl);
+  const auth = await checkAuth(apiUrl, envApiKey);
+
+  const report: DoctorReport = {
+    ok: health.status !== "fail" && auth.status !== "fail",
+    api_url: apiUrl,
+    checks: {
+      env: {
+        api_url_set: Boolean(envApiUrl),
+        api_key_present: Boolean(envApiKey),
+        domain_set: Boolean(envDomain),
+      },
+      health,
+      auth,
+    },
+  };
+
+  if (opts.json) {
+    console.log(JSON.stringify(report, null, 2));
+  } else {
+    console.log("Doctor Report:\n");
+    console.log(`  API URL:   ${apiUrl}${envApiUrl ? "" : " (default)"}`);
+    console.log(`  API Key:   ${envApiKey ? "present" : "missing"}`);
+    console.log(`  SF_DOMAIN: ${envDomain || "not set (optional)"}`);
+    console.log("");
+
+    console.log(`  [${health.status.toUpperCase()}] health - ${health.message}${health.details ? ` (${health.details})` : ""}`);
+    console.log(`  [${auth.status.toUpperCase()}] auth   - ${auth.message}${auth.details ? ` (${auth.details})` : ""}`);
+
+    if (!report.ok) {
+      console.log("\nSuggested fixes:");
+      if (!envApiKey) {
+        console.log("  - export SF_API_KEY=sk_xxxxx");
+      }
+      if (!envApiUrl) {
+        console.log("  - export SF_API_URL=http://localhost:3000");
+      }
+      console.log("  - Verify API is running: curl -i " + apiUrl + "/health");
+    }
+  }
+
+  if (!report.ok) {
+    process.exit(1);
+  }
 }

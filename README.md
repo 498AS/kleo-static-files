@@ -81,6 +81,13 @@ sf stats                          # Global stats
 sf stats <site>                   # Site stats
 ```
 
+### Doctor
+
+```bash
+sf doctor                         # Human-readable diagnostics
+sf doctor --json                  # Machine-readable diagnostics
+```
+
 ## For AI Agents
 
 This tool is designed to be used by AI agents.
@@ -119,9 +126,19 @@ sf upload ./new-build mysite
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `SF_API_URL` | - | API endpoint (required) |
+| `SF_API_URL` | `http://localhost:3000` | API endpoint |
 | `SF_API_KEY` | - | API key (required) |
 | `SF_DOMAIN` | 498as.com | Base domain for sites |
+
+## Troubleshooting
+
+```bash
+# Quick diagnosis (env + connectivity + auth)
+sf doctor
+
+# JSON output for scripts/agents
+sf doctor --json
+```
 
 ## API
 
