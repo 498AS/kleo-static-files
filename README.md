@@ -71,6 +71,8 @@ source ~/.config/kleo/static-files.env
 scripts/smoke-cli.sh
 ```
 
+If you are using the AI skill package, follow the preflight and runtime-mode guide in [`static-files/SKILL.md`](./static-files/SKILL.md).
+
 ## Usage
 
 ### Sites
