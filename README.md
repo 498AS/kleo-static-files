@@ -53,6 +53,24 @@ export SF_API_URL=http://localhost:3000
 export SF_API_KEY=sk_xxxxx
 ```
 
+### Bootstrap + Smoke Test
+
+```bash
+# Generate exports from key + defaults
+eval "$(scripts/bootstrap-env.sh --api-key 'sk_xxxxx' --emit-exports)"
+
+# Validate health + authenticated CLI path
+scripts/smoke-cli.sh
+```
+
+Alternative (write snippet file with restricted permissions):
+
+```bash
+scripts/bootstrap-env.sh --api-key 'sk_xxxxx' --write-file ~/.config/kleo/static-files.env
+source ~/.config/kleo/static-files.env
+scripts/smoke-cli.sh
+```
+
 ## Usage
 
 ### Sites
@@ -197,6 +215,8 @@ bun run dev          # Start server with watch
 bun run build        # Build binaries
 bun run create-key   # Generate API key
 bun run sync-caddy   # Regenerate Caddy config
+scripts/bootstrap-env.sh --help
+scripts/smoke-cli.sh --help
 ```
 
 ## License
