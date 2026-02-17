@@ -53,6 +53,18 @@ export SF_API_URL=http://localhost:3000
 export SF_API_KEY=sk_xxxxx
 ```
 
+## Troubleshooting
+
+```bash
+# Diagnose env + health + auth
+sf doctor
+
+# Manual health check
+curl -i "$SF_API_URL/health"
+```
+
+If you are using the AI skill package, follow the preflight and runtime-mode guide in [`static-files/SKILL.md`](./static-files/SKILL.md).
+
 ## Usage
 
 ### Sites

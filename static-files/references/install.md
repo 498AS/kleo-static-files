@@ -121,18 +121,39 @@ For each subdomain to work, configure a wildcard DNS record:
 ## Verification
 
 ```bash
-# Check service
-systemctl status kleo-static-files
-
-# Check API
-curl http://localhost:3000/health
-
-# Test site creation
+# Configure CLI env
 export SF_API_URL=http://localhost:3000
 export SF_API_KEY=sk_your_key
+
+# Run diagnostics first
+sf doctor
+
+# Health check
+curl -i "$SF_API_URL/health"
+
+# Test site creation
 sf sites create test
 curl -I https://test.yourdomain.com
 ```
+
+## Runtime Modes
+
+### Systemd Host
+
+```bash
+sudo /opt/kleo-static-files/install.sh --status
+systemctl status kleo-static-files
+```
+
+### No-Systemd Runtime (container/CI/session)
+
+```bash
+cd /opt/kleo-static-files
+set -a && source .env && set +a
+bun run server/index.ts
+```
+
+Use this mode when DBus/systemd is not available. Keep the process supervised by your runtime.
 
 ## Uninstall
 
