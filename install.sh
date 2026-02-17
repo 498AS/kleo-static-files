@@ -107,15 +107,30 @@ show_status() {
   local install_exists="false"
   local service_unit_exists="false"
   local process_running="false"
+  local install_dir_real=""
 
   if [ -d "$INSTALL_DIR" ]; then
     install_exists="true"
+    install_dir_real="$(readlink -f "$INSTALL_DIR" 2>/dev/null || echo "$INSTALL_DIR")"
   fi
   if [ -f "/etc/systemd/system/$SERVICE_NAME.service" ] || [ -f "/lib/systemd/system/$SERVICE_NAME.service" ]; then
     service_unit_exists="true"
   fi
-  if pgrep -f "bun run server/index.ts" >/dev/null 2>&1; then
-    process_running="true"
+
+  # In no-systemd mode, only trust processes that belong to this installation path.
+  if [ "$install_exists" = "true" ] && command -v pgrep >/dev/null 2>&1; then
+    for pid in $(pgrep -f "bun run server/index.ts" 2>/dev/null || true); do
+      local proc_cwd=""
+      local proc_cmdline=""
+      proc_cwd="$(readlink -f "/proc/$pid/cwd" 2>/dev/null || true)"
+      [ "$proc_cwd" = "$install_dir_real" ] || continue
+
+      proc_cmdline="$(tr '\0' ' ' </proc/"$pid"/cmdline 2>/dev/null || true)"
+      if echo "$proc_cmdline" | grep -q "server/index.ts"; then
+        process_running="true"
+        break
+      fi
+    done
   fi
 
   if command -v systemctl >/dev/null 2>&1; then
