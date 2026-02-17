@@ -7,19 +7,21 @@
 # Usage: sf.sh <command> [args]
 #
 # Environment:
-#   SF_API_URL  API endpoint (required)
+#   SF_API_URL  API endpoint (optional, default: http://localhost:3000)
 #   SF_API_KEY  API key (required)
 #   SF_DOMAIN   Domain for URL display (optional, default: 498as.com)
 #
 set -e
 
 # === Configuration ===
-API_URL="${SF_API_URL:-}"
+API_URL_DEFAULT="http://localhost:3000"
+API_URL="${SF_API_URL:-$API_URL_DEFAULT}"
 API_KEY="${SF_API_KEY:-}"
 DOMAIN="${SF_DOMAIN:-498as.com}"
 
 # === Output Helpers ===
 err() { echo "Error: $1" >&2; exit 1; }
+warn() { echo "Warning: $1" >&2; }
 info() { echo "$1"; }
 
 # === JSON Parsing (no jq) ===
@@ -69,8 +71,14 @@ urlencode() {
 
 # === Validate Environment ===
 check_env() {
-    [ -z "$API_URL" ] && err "SF_API_URL environment variable is required"
-    [ -z "$API_KEY" ] && err "SF_API_KEY environment variable is required"
+    if [ -z "${SF_API_URL:-}" ]; then
+        warn "SF_API_URL not set, using default: $API_URL"
+    fi
+
+    if [ -z "$API_KEY" ]; then
+        echo "Error: SF_API_KEY environment variable is required" >&2
+        err "Set it with: export SF_API_KEY=sk_xxxxx"
+    fi
 }
 
 # === API Requests ===
@@ -599,7 +607,7 @@ Commands:
   help                             Show this help
 
 Environment:
-  SF_API_URL    API endpoint (required)
+  SF_API_URL    API endpoint (default: http://localhost:3000)
   SF_API_KEY    API key (required)
   SF_DOMAIN     Domain for URLs (default: 498as.com)
 
