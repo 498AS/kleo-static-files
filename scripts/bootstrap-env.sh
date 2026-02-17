@@ -89,6 +89,8 @@ if [ -z "$API_KEY" ]; then
 fi
 
 if [ -n "$WRITE_FILE" ]; then
+  write_dir="$(dirname "$WRITE_FILE")"
+  mkdir -p "$write_dir"
   umask 077
   cat > "$WRITE_FILE" <<EOF
 export SF_API_URL='${API_URL}'
