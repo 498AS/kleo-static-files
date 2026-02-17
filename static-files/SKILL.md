@@ -20,21 +20,24 @@ Run this before any `sf ...` command:
 
 ```bash
 # 1) Required env
-echo "$SF_API_URL"
+API_URL="${SF_API_URL:-http://localhost:3000}"
+echo "$API_URL"
 echo "$SF_API_KEY"
 
 # 2) API health
-curl -i "$SF_API_URL/health"
+curl -i "$API_URL/health"
 
-# 3) Doctor (recommended)
-sf doctor
+# 3) Doctor (if available in your sf version)
+if sf help 2>/dev/null | grep -q "doctor"; then
+  sf doctor
+fi
 ```
 
 Expected:
-- `SF_API_URL` is set (or defaults to `http://localhost:3000`)
+- API URL resolves to `http://localhost:3000` unless `SF_API_URL` is set
 - `SF_API_KEY` is set
 - `/health` returns `200`
-- `sf doctor` shows `health` and `auth` checks as PASS
+- If available, `sf doctor` shows `health` and `auth` checks as PASS
 
 If preflight fails, fix runtime/config first; do not proceed with uploads/site changes.
 
