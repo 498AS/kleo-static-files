@@ -14,6 +14,53 @@ Host static content on `*.{domain}` subdomains with automatic SSL.
 > **Note:** The domain is configured via `SF_DOMAIN` environment variable (set during installation).
 > Examples below use `yourdomain.com` as placeholder.
 
+## Preflight (Required)
+
+Run this before any `sf ...` command:
+
+```bash
+# 1) Required env
+echo "$SF_API_URL"
+echo "$SF_API_KEY"
+
+# 2) API health
+curl -i "$SF_API_URL/health"
+
+# 3) Doctor (recommended)
+sf doctor
+```
+
+Expected:
+- `SF_API_URL` is set (or defaults to `http://localhost:3000`)
+- `SF_API_KEY` is set
+- `/health` returns `200`
+- `sf doctor` shows `health` and `auth` checks as PASS
+
+If preflight fails, fix runtime/config first; do not proceed with uploads/site changes.
+
+## Runtime Mode Detection
+
+Choose the branch that matches your environment:
+
+### A) Systemd Host (recommended production mode)
+
+```bash
+sudo /opt/kleo-static-files/install.sh --status
+systemctl status kleo-static-files
+```
+
+Use this when systemd is available and managing the service.
+
+### B) No-Systemd Session / Container / CI
+
+```bash
+cd /opt/kleo-static-files
+set -a && source .env && set +a
+bun run server/index.ts
+```
+
+In no-systemd environments, run the API process manually and keep it alive in your session/supervisor.
+
 ## Quick Reference
 
 ```bash
@@ -154,17 +201,40 @@ Base: `$SF_API_URL` with `Authorization: Bearer $SF_API_KEY`
 
 ### "Cannot connect to API"
 ```bash
-# Check service status
-systemctl status kleo-static-files
+# Fast diagnosis
+sf doctor
 
-# Check if port is listening
-curl http://localhost:3000/health
+# Manual health check
+curl -i "$SF_API_URL/health"
+```
+
+If systemd host:
+
+```bash
+sudo /opt/kleo-static-files/install.sh --status
+systemctl status kleo-static-files
+journalctl -u kleo-static-files -n 100 --no-pager
+```
+
+If no-systemd runtime:
+
+```bash
+pgrep -af "bun run server/index.ts"
+cd /opt/kleo-static-files
+set -a && source .env && set +a
+bun run server/index.ts
+
+# In another shell
+curl -i "$SF_API_URL/health"
 ```
 
 ### "Invalid API key"
 ```bash
 # Verify key is set
 echo $SF_API_KEY
+
+# Validate auth path
+sf doctor --json
 
 # Create new key if needed
 bun run /opt/kleo-static-files/scripts/create-key.ts "new-key"
