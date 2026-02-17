@@ -100,15 +100,50 @@ EOF
 show_status() {
   log "Checking installation status..."
   echo ""
-  
-  # Service
-  if systemctl is-active --quiet $SERVICE_NAME 2>/dev/null; then
-    echo "Service:     RUNNING"
-  elif systemctl is-enabled --quiet $SERVICE_NAME 2>/dev/null; then
-    echo "Service:     STOPPED (enabled)"
-  else
-    echo "Service:     NOT INSTALLED"
+
+  local has_systemctl="false"
+  local systemd_usable="false"
+  local service_status="NOT INSTALLED"
+  local install_exists="false"
+  local service_unit_exists="false"
+  local process_running="false"
+
+  if [ -d "$INSTALL_DIR" ]; then
+    install_exists="true"
   fi
+  if [ -f "/etc/systemd/system/$SERVICE_NAME.service" ] || [ -f "/lib/systemd/system/$SERVICE_NAME.service" ]; then
+    service_unit_exists="true"
+  fi
+  if pgrep -f "bun run server/index.ts" >/dev/null 2>&1; then
+    process_running="true"
+  fi
+
+  if command -v systemctl >/dev/null 2>&1; then
+    has_systemctl="true"
+    if systemctl list-units >/dev/null 2>&1; then
+      systemd_usable="true"
+    fi
+  fi
+
+  # Service
+  if [ "$systemd_usable" = "true" ]; then
+    if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
+      service_status="RUNNING"
+    elif systemctl is-enabled --quiet "$SERVICE_NAME" 2>/dev/null; then
+      service_status="STOPPED (enabled)"
+    else
+      service_status="NOT INSTALLED"
+    fi
+  else
+    if [ "$process_running" = "true" ]; then
+      service_status="RUNNING (process mode, no-systemd runtime)"
+    elif [ "$install_exists" = "true" ] || [ "$service_unit_exists" = "true" ]; then
+      service_status="NO_SYSTEMD_RUNTIME (cannot query unit state)"
+    else
+      service_status="NOT INSTALLED"
+    fi
+  fi
+  echo "Service:     $service_status"
   
   # Installation
   if [ -d "$INSTALL_DIR" ]; then
@@ -130,6 +165,12 @@ show_status() {
     echo "API:         OK (http://localhost:$PORT)"
   else
     echo "API:         NOT RESPONDING"
+  fi
+
+  if [ "$has_systemctl" = "false" ]; then
+    echo "Runtime:     systemctl not found (status inferred)"
+  elif [ "$systemd_usable" = "false" ]; then
+    echo "Runtime:     systemd unavailable (no DBus/session bus)"
   fi
   
   # Caddy
