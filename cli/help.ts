@@ -11,6 +11,7 @@ COMMANDS
   upload    Upload files to a site
   files     List or delete files from a site
   stats     View access statistics
+  doctor    Diagnose env, API connectivity, and auth
 
 EXAMPLES
   sf sites create docs              # Create docs.${DOMAIN}
@@ -109,4 +110,25 @@ EXAMPLES
   sf stats mysite                       # Stats for mysite
 
 TAGS: stats, analytics, monitoring
+`.trim();
+
+export const DOCTOR_HELP = `
+Diagnose configuration and connectivity
+
+USAGE
+  sf doctor [--json]
+
+CHECKS
+  env       Validate SF_API_URL/SF_API_KEY/SF_DOMAIN presence
+  health    Check API /health reachability
+  auth      Check authenticated request to /sites
+
+OPTIONS
+  --json            Output machine-readable diagnostics
+
+EXAMPLES
+  sf doctor
+  sf doctor --json
+
+TAGS: diagnostics, troubleshooting, health
 `.trim();
